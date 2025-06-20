@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Web Code Injector",
+  "version": "1.0",
+  "description": "A side panel to inject and change the JS, HTML, and CSS of the active webpage.",
+  "host_permissions": [ "<all_urls>"],
+  "permissions": ["sidePanel", "activeTab", "scripting" ,"tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Code Injector"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}
