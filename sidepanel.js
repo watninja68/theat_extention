@@ -17,7 +17,6 @@ async function getActiveTab() {
   return tab;
 }
 
-
 injectCssBtn.addEventListener("click", async () => {
   const tab = await getActiveTab();
   const cssCode = cssInput.value;
@@ -184,7 +183,7 @@ async function handleMagicChange() {
     // UPDATED: Loop through the array and apply each change sequentially.
     for (const change of changes) {
       // Add defensive checks for the change object structure
-      if (!change || typeof change !== 'object') {
+      if (!change || typeof change !== "object") {
         console.warn("⚠️ Invalid change object received:", change);
         continue;
       }
@@ -193,38 +192,60 @@ async function handleMagicChange() {
       const codeType = change.type;
 
       // Check if required properties exist
-      if (!codeToExecute || typeof codeToExecute !== 'string') {
+      if (!codeToExecute || typeof codeToExecute !== "string") {
         console.warn("⚠️ Invalid or missing Code property in change:", change);
         continue;
       }
 
-      if (!codeType || typeof codeType !== 'string') {
+      if (!codeType || typeof codeType !== "string") {
         console.warn("⚠️ Invalid or missing Type property in change:", change);
         continue;
       }
 
-      console.log(`[LOG] -> Applying part: type='${codeType}', length=${codeToExecute.length}`);
+      console.log(
+        `[LOG] -> Applying part: type='${codeType}', length=${codeToExecute.length}`,
+      );
 
       switch (codeType) {
-        case 'javascript':
+        case "javascript":
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             world: "MAIN",
             func: (jsCode) => {
-              try { eval(jsCode); } catch (e) { console.error("Error executing JS part:", e); }
+              try {
+                eval(jsCode);
+              } catch (e) {
+                console.error("Error executing JS part:", e);
+              }
             },
             args: [codeToExecute],
           });
           break;
-        
-        case 'css':
-          await chrome.scripting.insertCSS({
+
+        case "css":
+          await chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            css: codeToExecute,
+            world: "MAIN",
+            func: (cssString) => {
+              // ensure we have exactly one style element that we can overwrite
+              const STYLE_ID = "__web_code_injector_css__";
+              let tag = document.getElementById(STYLE_ID);
+              if (!tag) {
+                tag = document.createElement("style");
+                tag.id = STYLE_ID;
+                tag.type = "text/css";
+                document.head.appendChild(tag);
+              }
+
+              /* Always append at the end so we win the cascade.
+                 We overwrite, not concatenate, so that re-running the
+                 “Magic” button replaces old rules instead of duplicating them. */
+              tag.textContent = cssString;
+            },
+            args: [codeToExecute],
           });
           break;
-        
-        case 'html':
+        case "html":
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: (html) => {
@@ -233,7 +254,7 @@ async function handleMagicChange() {
             args: [codeToExecute],
           });
           break;
-        
+
         default:
           console.warn(`Unknown change type '${codeType}' received. Skipping.`);
       }
@@ -247,7 +268,6 @@ async function handleMagicChange() {
     );
   }
 }
-
 
 magicButton.addEventListener("click", handleMagicChange);
 
